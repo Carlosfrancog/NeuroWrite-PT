@@ -75,6 +75,15 @@ jobs:
           print(resultados.to_string(index=False))
           PY
 
+      - name: Testar letra manuscrita enviada pelo grupo (sem retreino)
+        run: |
+          python scripts/evaluate_handwriting.py \
+            --fixture tests/fixtures/linha_caderno_mask.b64 \
+            --models-dir results/emnist \
+            --output-dir results/handwriting
+          test -s results/handwriting/resumo_diagnostico.csv
+          test -s results/handwriting/recortes_conferidos.png
+
       - name: Publicar notebook executado, graficos e modelos
         uses: actions/upload-artifact@v6
         with:
