@@ -9,6 +9,7 @@ on:
       - "requirements.txt"
       - "src/**"
       - "scripts/run_online_emnist.py"
+      - "scripts/evaluate_handwriting_online.py"
       - "tests/test_online_training.py"
 
 permissions:
@@ -101,6 +102,9 @@ jobs:
           test -s results/online/historico_por_epoca.csv
           test -s results/online/rede_real_completa.png
           test -s results/online/rede_real_metadados.json
+          test -s results/online/rede_grande_filtrada.png
+          test -s results/online/rede_compacta_saida_AZ.png
+          test -s results/online/evolucao_pesos_por_epoca.gif
           python - <<'PY'
           import json
           import pandas as pd
@@ -115,6 +119,21 @@ jobs:
           print("Camadas reais:", meta["topologia"])
           PY
 
+      - name: Avaliar as 26 letras manuscritas A-Z na MLP incremental (sem retreinar)
+        run: |
+          python -m scripts.evaluate_handwriting_online \
+            --fixture tests/fixtures/linha_caderno_mask.b64 \
+            --modelo results/online/com_augmentacao.joblib \
+            --output-dir results/handwriting
+          test -s results/handwriting/predicoes_mlp_incremental_AZ.csv
+          test -s results/handwriting/letras_mlp_incremental_AZ.png
+          python - <<'PY'
+          import pandas as pd
+          df = pd.read_csv("results/handwriting/predicoes_mlp_incremental_AZ.csv")
+          assert len(df) == 26 and set(df["esperado"]) == set("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+          assert df["confianca"].between(0, 1).all()
+          PY
+
       - name: Publicar notebook executado, graficos e modelos
         uses: actions/upload-artifact@v6
         with:
@@ -122,3 +141,60 @@ jobs:
           path: results/
           if-no-files-found: error
           retention-days: 14
+
+      # Artifacts individuais não compactados: aparecem com prévia no navegador,
+      # além do pacote ZIP original, sem publicar arquivos de fotos pessoais.
+      - name: Publicar imagem da rede grande (PNG)
+        id: rede_grande
+        uses: actions/upload-artifact@v7
+        with:
+          path: results/online/rede_grande_filtrada.png
+          archive: false
+          retention-days: 14
+
+      - name: Publicar imagem da rede compacta (PNG)
+        id: rede_compacta
+        uses: actions/upload-artifact@v7
+        with:
+          path: results/online/rede_compacta_saida_AZ.png
+          archive: false
+          retention-days: 14
+
+      - name: Publicar animacao dos checkpoints (GIF)
+        id: gif_treino
+        uses: actions/upload-artifact@v7
+        with:
+          path: results/online/evolucao_pesos_por_epoca.gif
+          archive: false
+          retention-days: 14
+
+      - name: Publicar teste da caligrafia A-Z (PNG)
+        id: img_caderno
+        uses: actions/upload-artifact@v7
+        with:
+          path: results/handwriting/letras_mlp_incremental_AZ.png
+          archive: false
+          retention-days: 14
+
+      - name: Resumo com links individuais para as imagens
+        if: success()
+        env:
+          GRANDE: ${{ steps.rede_grande.outputs.artifact-url }}
+          COMPACTA: ${{ steps.rede_compacta.outputs.artifact-url }}
+          GIF: ${{ steps.gif_treino.outputs.artifact-url }}
+          CADERNO: ${{ steps.img_caderno.outputs.artifact-url }}
+        run: |
+          {
+            echo "## NeuroWrite — visualizações e caligrafia A–Z"
+            echo ""
+            echo "Arquivos clicáveis na própria Action, além do ZIP completo:"
+            echo ""
+            echo "- [Rede grande filtrada (PNG)]($GRANDE)"
+            echo "- [Rede compacta e 26 probabilidades (PNG)]($COMPACTA)"
+            echo "- [Evolução real dos pesos por época (GIF)]($GIF)"
+            echo "- [Diagnóstico da caligrafia do grupo: 26 letras, sem acentos (PNG)]($CADERNO)"
+            echo ""
+            echo "Os pesos são reais; arestas são filtradas para legibilidade."
+            echo "O GIF mostra checkpoints entre épocas, não gradientes quadro a quadro."
+            echo "Amostra A–Z serve apenas como diagnóstico; não houve retreinamento nela."
+          } >> "$GITHUB_STEP_SUMMARY"
