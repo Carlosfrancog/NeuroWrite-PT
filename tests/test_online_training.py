@@ -11,6 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from src.augmentation import aumentar_lote
 from src.online_training import ConfigTreino, treinar_incremental
 from src.full_network import propagacao_real, desenhar_rede_completa
+from src.neuroviz import capturar_snapshot, exportar_png, exportar_gif
 
 
 class TesteAugmentacao(unittest.TestCase):
@@ -70,6 +71,28 @@ class TesteRedeReal(unittest.TestCase):
             self.assertTrue(saida.is_file() and saida.stat().st_size > 1000)
             self.assertEqual(meta["total_pesos"], 784*3 + 3*3)
             self.assertEqual(meta["topologia"], [784, 3, 3])
+
+    def test_visualizacoes_e_gif_usam_modelo_real(self):
+        rng = np.random.default_rng(23)
+        X = rng.random((18, 784), dtype=np.float32)
+        y = np.arange(18) % 3
+        snapshots = []
+        pipe, _ = treinar_incremental(
+            X[:15], y[:15], X[15:], y[15:],
+            ConfigTreino(epocas=2, tamanho_lote=5, camada_oculta=(5,),
+                         semente=23, augmentar=False),
+            observador=lambda epoca, p: snapshots.append(capturar_snapshot(p, X[0], epoca)),
+        )
+        self.assertEqual(len(snapshots), 2)
+        self.assertEqual(snapshots[0].pesos[0].shape, (784, 5))
+        self.assertFalse(np.array_equal(snapshots[0].pesos[0], snapshots[1].pesos[0]))
+        with TemporaryDirectory() as pasta:
+            from pathlib import Path
+            grande = exportar_png(snapshots[-1], Path(pasta) / "grande.png", modo="grande", dpi=45)
+            pequena = exportar_png(snapshots[-1], Path(pasta) / "pequena.png", dpi=45)
+            animacao = exportar_gif(snapshots, Path(pasta) / "evolucao.gif")
+            for arquivo in (grande, pequena, animacao):
+                self.assertGreater(arquivo.stat().st_size, 1000)
 
 
 if __name__ == "__main__":

@@ -35,6 +35,7 @@ def treinar_incremental(
     X_validacao: np.ndarray,
     y_validacao: np.ndarray,
     configuracao: ConfigTreino = ConfigTreino(),
+    observador=None,  # callback(epoca, pipeline) após cada época; somente telemetria
 ) -> tuple[Pipeline, pd.DataFrame]:
     """Retorna rede treinada e histórico com perda do último lote por época.
 
@@ -97,6 +98,8 @@ def treinar_incremental(
             "acuracia_validacao": float(accuracy_score(yv, previsao)),
             "f1_macro_validacao": float(f1_score(yv, previsao, average="macro", zero_division=0)),
         })
+        if observador is not None:
+            observador(epoca, Pipeline([("escala", scaler), ("modelo", modelo)]))
 
     pipeline = Pipeline([("escala", scaler), ("modelo", modelo)])
     return pipeline, pd.DataFrame(linhas)

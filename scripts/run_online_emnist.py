@@ -25,6 +25,7 @@ from sklearn.metrics import accuracy_score, f1_score
 from src.augmentation import aumentar_lote
 from src.online_training import ConfigTreino, treinar_incremental
 from src.full_network import desenhar_rede_completa
+from src.neuroviz import capturar_snapshot, exportar_png, exportar_gif
 
 RAIZ = Path("notebooks/data/public/emnist_letters")
 SAIDA = Path("results/online")
@@ -71,6 +72,11 @@ def main():
     # O conjunto oficial de TESTE só é carregado após criar treino/validação.
     # Nunca é passado para o gerador ou função de treinamento.
     historicos, modelos = [], {}
+    snapshots = []
+
+    def observar(epoca, pipeline):
+        # Exemplo fixo exclusivamente do TREINO, sem acesso ao teste reservado.
+        snapshots.append(capturar_snapshot(pipeline, X_treino[0], epoca))
     for ativar in (False, True):
         nome = "com_augmentacao" if ativar else "sem_augmentacao"
         modelo, historico = treinar_incremental(
@@ -78,11 +84,16 @@ def main():
             ConfigTreino(epocas=6, tamanho_lote=128,
                          camada_oculta=(128,), semente=SEMENTE,
                          augmentar=ativar),
+            observador=observar if ativar else None,
         )
         historicos.append(historico)
         modelos[nome] = modelo
         joblib.dump(modelo, SAIDA / f"{nome}.joblib", compress=3)
         print(nome, "F1 validação:", round(historico.iloc[-1]["f1_macro_validacao"], 4))
+    if snapshots:
+        exportar_png(snapshots[-1], SAIDA / "rede_grande_filtrada.png", modo="grande")
+        exportar_png(snapshots[-1], SAIDA / "rede_compacta_saida_AZ.png")
+        exportar_gif(snapshots, SAIDA / "evolucao_pesos_por_epoca.gif")
     historia = pd.concat(historicos, ignore_index=True)
     historia.to_csv(SAIDA / "historico_por_epoca.csv", index=False)
 
