@@ -2,6 +2,13 @@ name: Treinar modelos - EMNIST publico
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/train-emnist.yml"
+      - "src/**"
+      - "scripts/**"
+      - "tests/**"
+      - "requirements.txt"
   push:
     paths:
       - ".github/workflows/train-emnist.yml"
