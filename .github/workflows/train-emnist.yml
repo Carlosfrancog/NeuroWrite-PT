@@ -90,7 +90,7 @@ jobs:
 
       - name: Testar gerador, ciclo incremental e topologia real
         run: |
-          python -m unittest discover -s tests -p "test_online_training.py" -v
+          python -m unittest discover -s tests -p "test_*.py" -v
 
       - name: Comparar MLP incremental com e sem augmentacao
         env:
