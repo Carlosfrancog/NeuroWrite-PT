@@ -22,10 +22,10 @@ jobs:
 
     steps:
       - name: Obter codigo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Configurar Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: "pip"
@@ -44,6 +44,14 @@ jobs:
             --output-dir results \
             --ExecutePreprocessor.timeout=1500 \
             --ExecutePreprocessor.kernel_name=python3
+          # O nbconvert executa o kernel a partir da pasta notebooks/.
+          # Os artefatos produzidos nas celulas ficam nesse diretório.
+          if [ -d notebooks/results/emnist ]; then
+            mkdir -p results/emnist
+            cp -a notebooks/results/emnist/. results/emnist/
+          fi
+          echo "Arquivos gerados:"
+          find results -maxdepth 3 -type f -print
 
       - name: Verificar resultados produzidos
         run: |
@@ -68,7 +76,7 @@ jobs:
           PY
 
       - name: Publicar notebook executado, graficos e modelos
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: NeuroWrite-EMNIST-Resultados-${{ github.run_number }}
           path: results/
