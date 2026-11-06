@@ -7,6 +7,9 @@ on:
       - ".github/workflows/train-emnist.yml"
       - "notebooks/01_EMNIST_publico.ipynb"
       - "requirements.txt"
+      - "src/**"
+      - "scripts/run_online_emnist.py"
+      - "tests/test_online_training.py"
 
 permissions:
   contents: read
@@ -83,6 +86,34 @@ jobs:
             --output-dir results/handwriting
           test -s results/handwriting/resumo_diagnostico.csv
           test -s results/handwriting/recortes_conferidos.png
+
+      - name: Testar gerador, ciclo incremental e topologia real
+        run: |
+          python -m unittest discover -s tests -p "test_online_training.py" -v
+
+      - name: Comparar MLP incremental com e sem augmentacao
+        env:
+          OPENBLAS_NUM_THREADS: "1"
+          OMP_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        run: |
+          python -m scripts.run_online_emnist
+          test -s results/online/historico_por_epoca.csv
+          test -s results/online/rede_real_completa.png
+          test -s results/online/rede_real_metadados.json
+          python - <<'PY'
+          import json
+          import pandas as pd
+          from pathlib import Path
+          tabela = pd.read_csv("results/online/comparacao_teste.csv")
+          assert set(tabela["modelo"]) == {"com_augmentacao", "sem_augmentacao"}
+          assert tabela["f1_macro_teste"].between(0, 1).all()
+          meta = json.loads(Path("results/online/rede_real_metadados.json").read_text())
+          assert meta["topologia"] == [784, 128, 26]
+          assert meta["total_pesos"] == 103680
+          print(tabela.to_string(index=False))
+          print("Camadas reais:", meta["topologia"])
+          PY
 
       - name: Publicar notebook executado, graficos e modelos
         uses: actions/upload-artifact@v6
