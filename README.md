@@ -87,3 +87,31 @@ A **augmentação aleatória não melhorou os resultados nessa configuração**.
 - [#4 Integração no notebook final do professor](https://github.com/Carlosfrancog/NeuroWrite-PT/issues/4)
 
 O vídeo e o treinamento com os 38 caracteres do grupo ainda não estão implementados; são trabalhos planejados.
+
+## NeuroViz — visualização leve da MLP e teste da caligrafia (branch de desenvolvimento)
+
+A biblioteca interna `src/neuroviz.py` usa **NumPy para contribuições reais** e
+**Matplotlib (backend Agg) para renderizar sem Tk/Turtle**, funcionando tanto no Colab
+quanto no Linux do GitHub Actions. O Turtle clássico depende de janela gráfica e,
+por isso, não é a opção principal para CI. Não há necessidade de dependência extra
+além de `requirements.txt`.
+
+Arquivos que o script `python -m scripts.run_online_emnist` passa a gerar:
+- `results/online/rede_grande_filtrada.png` — todos os neurônios, só conexões mais relevantes.
+- `results/online/rede_compacta_saida_AZ.png` — 28×28, neurônios ocultos destacados e probabilidades das 26 saídas.
+- `results/online/evolucao_pesos_por_epoca.gif` — frames dos pesos/ativações **após cada época** (não é filmagem de gradientes).
+- `results/online/rede_real_completa.png` — modo legado, todas as 103.680 ligações, incluído no ZIP geral.
+
+A mesma Action testa a caligrafia da foto piloto original **somente nas primeiras
+duas linhas (A–Z)**, ignorando Ç e os acentos da terceira linha. Usa a máscara
+anonimizada já versionada, sem publicar a fotografia e **sem retreinar o modelo
+com as letras do usuário**. Além de manter as avaliações SVM e MLP originais,
+executa `python -m scripts.evaluate_handwriting_online` para a MLP incremental e gera
+`results/handwriting/letras_mlp_incremental_AZ.png`,
+`predicoes_mlp_incremental_AZ.csv` (confiança e top 3) e CSV de resumo.
+
+Os novos PNGs/GIF são publicados individualmente em **Artifacts** com
+`actions/upload-artifact@v7` e `archive: false`, permitindo abrir as
+imagens diretamente no navegador; links ficam no **Summary** da execução.
+O ZIP geral continua disponível. A avaliação de 26 letras é apenas diagnóstica,
+não deve ser apresentada como acurácia populacional ou teste cego.
