@@ -41,3 +41,19 @@ Quantidade **planejada**, antes de limpeza: 3 pessoas × 10 folhas × 2 repetiç
 
 ## Situação
 **Etapa inicial:** documentação e notebook estruturado; *nenhum modelo treinado ou resultado empírico disponível ainda*.
+
+
+## Treinamento automatizado com dataset público (GitHub Actions)
+
+Podemos começar **antes das fotos do grupo**. A workflow [Treinar modelos - EMNIST publico](https://github.com/Carlosfrancog/NeuroWrite-PT/actions/workflows/train-emnist.yml) roda automaticamente quando o notebook público muda, ou manualmente em **Actions → Run workflow**.
+
+A Action executa o notebook [01_EMNIST_publico.ipynb](notebooks/01_EMNIST_publico.ipynb), baixa o EMNIST Letters, utiliza amostras balanceadas das divisões oficiais de treino/teste (100/20 exemplos por classe), realiza validação cruzada e comparação **SVM vs MLP**. Ao final, publica em **Artifacts** um pacote com:
+- notebook `.ipynb` **já executado**, com saídas;
+- `metricas.csv`, metadados e gráficos (amostras, distribuição, comparação, matrizes de confusão);
+- modelos treinados `.joblib`.
+
+**Limitações importantes:** a variante *EMNIST Letters* agrega minúsculas e maiúsculas em 26 classes A–Z; não possui Ç nem caracteres acentuados. O estudo dos colegas com **38 classes** exigirá reprocessamento e retreino. O modelo público não é OCR geral de frases, nem representa validação por escritor.
+
+**Entrega acadêmica:** o `.ipynb` final precisa permanecer autossuficiente e com resultados salvos, sem login, Drive ou execução ao vivo na apresentação.
+
+Ver também [workflow YAML](.github/workflows/train-emnist.yml).
