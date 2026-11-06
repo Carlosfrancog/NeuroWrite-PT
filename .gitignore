@@ -1,0 +1,21 @@
+# Dados manuscritos brutos/processados e informações de escritores
+data/raw/
+data/processed/
+data/private/
+*.jpg
+*.jpeg
+*.png
+*.heic
+*.zip
+*.csv
+!data/.gitkeep
+
+# Artefatos e cache
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+.venv/
+.env
+*.pkl
+*.joblib
+.DS_Store
