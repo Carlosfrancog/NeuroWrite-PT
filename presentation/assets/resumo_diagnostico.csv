@@ -1,0 +1,3 @@
+modelo,acertos,total,acuracia_diagnostica
+SVM,5,26,0.19230769230769232
+MLP,6,26,0.23076923076923078
